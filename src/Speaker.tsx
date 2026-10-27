@@ -1,9 +1,22 @@
-import { Monitor, MonitorOff, RotateCcw } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { LayoutGrid, Monitor, MonitorOff, Pause, Play, RotateCcw } from "lucide-react";
+import { memo, useEffect, useRef, useState } from "react";
 import { Attract } from "./components/Attract";
+import { Overview } from "./components/Overview";
 import { SlideView } from "./components/SlideView";
 import { Stage } from "./components/Stage";
-import { IDLE_MS, goTo, initialState, peekNext, toAttract } from "./lib/deck";
+import { tiles } from "./content/overview";
+import {
+	type DeckState,
+	IDLE_MS,
+	goTo,
+	initialState,
+	overviewPick,
+	overviewTogglePlay,
+	overviewToggleTech,
+	peekNext,
+	toAttract,
+	toOverview,
+} from "./lib/deck";
 import { useDeckKeys } from "./lib/keyboard";
 import { useSyncedDeck } from "./lib/sync";
 import { slides } from "./slides";
@@ -24,10 +37,94 @@ const mmss = (ms: number) => {
 	return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 };
 
-function Preview({ slide, step, attract }: { slide: number; step: number; attract?: boolean }) {
+/**
+ * Small copy of what the TV shows. Not interactive. Memoised: the speaker view
+ * re-renders twice a second for the timer, the previews must not.
+ */
+const Preview = memo(function Preview({
+	state,
+	slide,
+	step,
+}: {
+	state?: DeckState;
+	slide: number;
+	step: number;
+}) {
+	const mode = state?.mode ?? "pitch";
 	return (
-		<div className="aspect-video w-full overflow-hidden rounded-xl bg-navy ring-1 ring-white/10">
-			<Stage>{attract ? <Attract /> : <SlideView slide={slide} step={step} />}</Stage>
+		<div className="pointer-events-none aspect-video w-full overflow-hidden rounded-xl bg-navy ring-1 ring-white/10">
+			<Stage>
+				{mode === "attract" ? (
+					<Attract />
+				) : mode === "overview" && state ? (
+					<Overview {...state.overview} />
+				) : (
+					<SlideView slide={slide} step={step} />
+				)}
+			</Stage>
+		</div>
+	);
+});
+
+/** Right-hand panel while the overview is on screen. */
+function OverviewPanel({
+	state,
+	update,
+}: {
+	state: DeckState;
+	update: (fn: (s: DeckState) => DeckState) => void;
+}) {
+	const { tile, playing, tech } = state.overview;
+	const current = tiles[tile];
+	const face = current ? (tech ? current.tech : current.business) : null;
+	const btn = "flex items-center gap-2 rounded-lg bg-white/10 px-4 py-2 text-sm hover:bg-white/20";
+	return (
+		<div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto pr-2">
+			<div className="rounded-xl bg-white/10 p-5">
+				<p className="text-sm text-sky">{tech ? "Tech view" : "Business view"} · highlighted</p>
+				{face ? (
+					<>
+						<h3 className="mt-1 text-2xl">{face.title}</h3>
+						<p className="mt-1 text-lg text-white/70">{face.tagline}</p>
+						<ul className="mt-3 list-disc space-y-1 pl-5 text-lg text-white/90">
+							{face.details.map((d) => (
+								<li key={d}>{d}</li>
+							))}
+						</ul>
+					</>
+				) : (
+					<p className="mt-1 text-lg text-white/70">
+						Nothing highlighted yet: the whole page is showing. Press → or wait for the rotation.
+					</p>
+				)}
+			</div>
+			<div className="flex flex-wrap gap-2">
+				<button type="button" className={btn} onClick={() => update(overviewTogglePlay)}>
+					{playing ? <Pause className="size-4" /> : <Play className="size-4" />}
+					{playing ? "Pause rotation (P)" : "Resume rotation (P)"}
+				</button>
+				<button type="button" className={btn} onClick={() => update(overviewToggleTech)}>
+					{tech ? "Show business view (T)" : "Show tech view (T)"}
+				</button>
+			</div>
+			<div className="flex flex-wrap gap-2">
+				{tiles.map((t, i) => (
+					<button
+						key={t.id}
+						type="button"
+						onClick={() => update((s) => overviewPick(s, i))}
+						className={`rounded-full px-3 py-1 text-xs ${
+							i === tile ? "bg-orange text-white" : "bg-white/5 text-white/60 hover:bg-white/10"
+						}`}
+					>
+						{(tech ? t.tech : t.business).title}
+					</button>
+				))}
+			</div>
+			<p className="text-sm text-white/50">
+				← → move the highlight (rotation pauses until you press P). Enter starts the pitch
+				{state.startedAt ? " (resumes where you left off)" : ""}. L returns to the stand loop.
+			</p>
 		</div>
 	);
 }
@@ -40,6 +137,8 @@ const keys = [
 	["B", "blackout"],
 	["K", "keep"],
 	["R", "reset timer"],
+	["O", "overview"],
+	["P / T", "overview: pause · tech"],
 ];
 
 export function Speaker() {
@@ -57,6 +156,8 @@ export function Speaker() {
 	}, []);
 
 	const pitching = state.mode === "pitch";
+	const inOverview = state.mode === "overview";
+	const ov = state.overview;
 	const def = slides[state.slide];
 	const upcoming = peekNext(state);
 	const elapsed = state.startedAt ? now - state.startedAt : 0;
@@ -73,7 +174,9 @@ export function Speaker() {
 				<span className="text-white/60">
 					{pitching
 						? `Slide ${state.slide + 1}/${slides.length} · ${def.title} · beat ${state.step + 1}/${def.notes.length}`
-						: "Stand loop running"}
+						: inOverview
+							? `Overview · ${tiles[ov.tile]?.business.title ?? "whole page"} · ${ov.tech ? "tech" : "business"} view · ${ov.playing ? "rotating" : "paused"}`
+							: "Stand loop running"}
 				</span>
 				<span
 					className={`ml-auto flex items-center gap-2 text-sm ${connected ? "text-sky" : "text-orange"}`}
@@ -111,7 +214,7 @@ export function Speaker() {
 			<div className="grid min-h-0 flex-1 grid-cols-[1.25fr_1fr] gap-6 p-6">
 				<section className="flex min-h-0 flex-col gap-4">
 					<p className="text-xs uppercase tracking-widest text-white/40">On the TV now</p>
-					<Preview slide={state.slide} step={state.step} attract={!pitching} />
+					<Preview state={state} slide={state.slide} step={state.step} />
 					<div className="flex min-h-0 gap-4">
 						<div className="w-1/2 shrink-0">
 							<p className="mb-2 text-xs uppercase tracking-widest text-white/40">Next</p>
@@ -131,9 +234,11 @@ export function Speaker() {
 
 				<section className="flex min-h-0 flex-col">
 					<p className="mb-3 text-xs uppercase tracking-widest text-white/40">
-						{pitching ? `Script · ${def.title}` : "Ready"}
+						{pitching ? `Script · ${def.title}` : inOverview ? "Overview" : "Ready"}
 					</p>
-					{pitching ? (
+					{inOverview ? (
+						<OverviewPanel state={state} update={update} />
+					) : pitching ? (
 						<ol className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-2">
 							{def.notes.map((n, i) => (
 								<li
@@ -160,10 +265,22 @@ export function Speaker() {
 							<p className="text-white/50">
 								Visitor only wants the demo? Press <b>D</b> to jump straight to it.
 							</p>
+							<p className="text-white/50">
+								Want the whole picture on one screen? Press <b>O</b> for the overview.
+							</p>
 						</div>
 					)}
 
 					<nav className="mt-4 flex flex-wrap gap-2 border-t border-white/10 pt-4">
+						<button
+							type="button"
+							onClick={() => update(toOverview)}
+							className={`flex items-center gap-1 rounded-full px-3 py-1 text-xs ${
+								inOverview ? "bg-orange text-white" : "bg-white/5 text-white/60 hover:bg-white/10"
+							}`}
+						>
+							<LayoutGrid className="size-3" /> Overview
+						</button>
 						{slides.map((s, i) => (
 							<button
 								key={s.id}

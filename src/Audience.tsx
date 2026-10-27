@@ -1,11 +1,22 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { Attract } from "./components/Attract";
+import { Overview } from "./components/Overview";
 import { SlideView } from "./components/SlideView";
 import { Stage } from "./components/Stage";
 import { easeBrand } from "./components/ui";
 import { allAssetSrcs } from "./content/assets";
-import { IDLE_MS, next, stateFromHash, stateToHash, toAttract } from "./lib/deck";
+import { ROTATE_SECONDS } from "./content/overview";
+import {
+	IDLE_MS,
+	next,
+	overviewPick,
+	overviewSetTech,
+	overviewTick,
+	stateFromHash,
+	stateToHash,
+	toAttract,
+} from "./lib/deck";
 import { useDeckKeys } from "./lib/keyboard";
 import { useSyncedDeck } from "./lib/sync";
 import { slides } from "./slides";
@@ -61,6 +72,7 @@ function useIdleCursor() {
 export function Audience() {
 	const { state, update, changedAt } = useSyncedDeck("audience", stateFromHash(location.hash));
 	const [sweeps, setSweeps] = useState(0);
+	const [hovered, setHovered] = useState<number | null>(null);
 	const lastMode = useRef(state.mode);
 
 	useDeckKeys({ update, onFullscreen: toggleFullscreen, onSpeaker: openSpeakerView });
@@ -75,6 +87,7 @@ export function Audience() {
 	useEffect(() => {
 		if (lastMode.current !== state.mode) setSweeps((n) => n + 1);
 		lastMode.current = state.mode;
+		setHovered(null);
 	}, [state.mode]);
 
 	// Drift back to the stand loop when the visitor has gone.
@@ -84,13 +97,25 @@ export function Audience() {
 		return () => window.clearTimeout(t);
 	}, [state, changedAt, update]);
 
+	// Overview auto-rotation: one plain timer, owned by the TV window only.
+	// Restarts whenever the highlight, view or pause state changes; holds while hovered.
+	const { tile: ovTile, playing: ovPlaying, tech: ovTech } = state.overview;
+	useEffect(() => {
+		if (state.mode !== "overview" || !ovPlaying || hovered !== null) return;
+		const t = window.setTimeout(() => update(overviewTick), ROTATE_SECONDS * 1000);
+		return () => window.clearTimeout(t);
+	}, [state.mode, ovTile, ovPlaying, ovTech, hovered, update]);
+
 	// Warm the image cache so nothing pops in mid-pitch.
 	useEffect(() => {
 		for (const src of allAssetSrcs) new Image().src = src;
 	}, []);
 
 	return (
-		<main className="h-full w-full bg-navy" onClick={() => update(next)}>
+		<main
+			className="h-full w-full bg-navy"
+			onClick={() => update((s) => (s.mode === "overview" ? s : next(s)))}
+		>
 			<Stage>
 				<AnimatePresence initial={false}>
 					<motion.div
@@ -103,6 +128,14 @@ export function Audience() {
 					>
 						{state.mode === "attract" ? (
 							<Attract />
+						) : state.mode === "overview" ? (
+							<Overview
+								{...state.overview}
+								hovered={hovered}
+								onHover={setHovered}
+								onPick={(i) => update((s) => overviewPick(s, i))}
+								onSetTech={(v) => update((s) => overviewSetTech(s, v))}
+							/>
 						) : (
 							<SlideView slide={state.slide} step={state.step} />
 						)}

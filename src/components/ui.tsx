@@ -94,6 +94,15 @@ export const iconMotion = {
 	turn: { degrees: 360, duration: 0.8, pop: 1.18 },
 };
 
+/** Tailwind classes per tech-layer colour (kept literal so Tailwind sees them). */
+export const layerTone = {
+	sky: { text: "text-sky", chip: "border-sky/70", dot: "bg-sky" },
+	sun: { text: "text-sun", chip: "border-sun/70", dot: "bg-sun" },
+	white: { text: "text-white", chip: "border-white/70", dot: "bg-white" },
+	green: { text: "text-spring", chip: "border-spring/80", dot: "bg-spring" },
+	orange: { text: "text-orange", chip: "border-orange/80", dot: "bg-orange" },
+} as const;
+
 /** Icon in a soft rounded tile. */
 export function IconTile({
 	children,

@@ -2,9 +2,10 @@
 
 An interactive, browser-based pitch deck for **ChainPilot**, a platform that connects buying, stock, production and sales for businesses that turn raw materials into finished products.
 
-It runs in two modes:
+It runs in three modes:
 
 - **Stand loop:** a self-running sequence that draws attention when nobody is presenting.
+- **Overview:** one page with everything ChainPilot does and how it's built.
 - **Pitch:** an animated slide deck that builds step by step with the presenter.
 
 A separate **speaker view** gives the presenter the script, previews, a timer and full control. It stays in sync with the audience screen.
@@ -14,6 +15,11 @@ A separate **speaker view** gives the presenter the script, previews, a timer an
 - **Stand loop.** Short scenes with large type cycle on their own. Any key or click starts the pitch.
 - **Step-by-step slides.** Each key press reveals the next point, so the screen follows the speaker.
 - **Demo slides.** Real product screenshots in a browser frame. Each step zooms into the part that matters, and a new screenshot cross-fades in when the screen changes.
+- **Overview page:**
+  - A bento grid of every module, what makes ChainPilot different, who it's for, and the tech stack.
+  - One tile is highlighted at a time and its details appear. The highlight rotates on its own until you move it or pause it.
+  - **T** turns every tile over to show how that part is built.
+  - It is also a shareable link (`/#/overview`). On phones it becomes a scrolling page with tap-to-open cards and a Business/Tech switch.
 - **Speaker view:**
   - live preview of the audience screen
   - preview of the next step
@@ -61,6 +67,18 @@ The speaker view can also be opened directly by adding `#/speaker` to the deck's
 | F | Toggle fullscreen (audience window) |
 | S | Open the speaker view (audience window) |
 | Home / End | First / last slide |
+| O | Open the overview page |
+
+On the overview page:
+
+| Key / action | Action |
+|---|---|
+| ← / → | Move the highlight (pauses rotation until P) |
+| P / Space | Pause / resume rotation |
+| T | Switch between business and tech view |
+| Mouse hover | Highlight a tile while the pointer is over it |
+| Click | Pin the highlight on a tile |
+| Enter | Start the pitch, or resume it if one was in progress |
 
 Presentation clickers work too, because they send the same keys.
 
@@ -69,6 +87,7 @@ Presentation clickers work too, because they send the same keys.
 | What | Where |
 |---|---|
 | Speaker script | `src/content/script.ts`. One line is one step, and each slide needs as many lines as it has steps. |
+| Overview page wording, tech stack and rotation speed | `src/content/overview.ts` |
 | Slide text and layout | `src/slides/*.tsx` |
 | Demo screenshots, captions and zoom areas | `src/content/assets.ts`, with images in `public/assets/` |
 | Icon animation speed and angle | `iconMotion` in `src/components/ui.tsx` |
@@ -80,6 +99,7 @@ Presentation clickers work too, because they send the same keys.
 src/
   Audience.tsx        audience window: stand loop, slides, idle return
   Speaker.tsx         speaker view
+  OverviewPhone.tsx   overview page layout for phones
   components/         stage scaling, brand elements, stand loop, shared UI
   slides/             one file per slide, plus the running order (index.ts)
   content/            script and asset configuration

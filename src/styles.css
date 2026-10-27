@@ -16,6 +16,8 @@
 	--color-mist: #f3f6f8;
 	--color-navy-raised: #24414f;
 	--color-navy-soft: #142f40;
+	/* Spring Boot green: only for the Backend tech layer on the overview */
+	--color-spring: #6db33f;
 
 	--font-display: "Poppins", system-ui, sans-serif;
 	--font-body: "Inter", system-ui, sans-serif;
@@ -54,4 +56,52 @@
 .cursor-idle,
 .cursor-idle * {
 	cursor: none !important;
+}
+
+/* Overview animations: plain CSS so they never depend on (or block) Motion's loop */
+/* transform-only keyframes: run on the compositor, no layout or repaint per frame */
+@keyframes cp-grow-x {
+	from {
+		transform: scaleX(0);
+	}
+	to {
+		transform: scaleX(1);
+	}
+}
+
+@keyframes cp-travel-x {
+	from {
+		transform: translate(0, -50%);
+	}
+	to {
+		transform: translate(100%, -50%);
+	}
+}
+
+@keyframes cp-fade-in-x {
+	from {
+		opacity: 0;
+		transform: translateX(24px);
+	}
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+
+.cp-travel {
+	animation: cp-travel-x 3.2s linear infinite;
+}
+
+.cp-fade-in {
+	animation: cp-fade-in-x 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.cp-travel {
+		display: none;
+	}
+	.cp-fade-in {
+		animation: none;
+	}
 }
