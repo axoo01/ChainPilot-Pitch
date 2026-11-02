@@ -4,7 +4,7 @@ import { Attract } from "./components/Attract";
 import { Overview } from "./components/Overview";
 import { SlideView } from "./components/SlideView";
 import { Stage } from "./components/Stage";
-import { tiles } from "./content/overview";
+import { intro, tiles } from "./content/overview";
 import {
 	type DeckState,
 	IDLE_MS,
@@ -80,24 +80,25 @@ function OverviewPanel({
 	const btn = "flex items-center gap-2 rounded-lg bg-white/10 px-4 py-2 text-sm hover:bg-white/20";
 	return (
 		<div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto pr-2">
+			{/* Before any card is highlighted: the intro for this side. Then: that card's script. */}
 			<div className="rounded-xl bg-white/10 p-5">
-				<p className="text-sm text-sky">{tech ? "Tech view" : "Business view"} · highlighted</p>
-				{face ? (
-					<>
-						<h3 className="mt-1 text-2xl">{face.title}</h3>
-						<p className="mt-1 text-lg text-white/70">{face.tagline}</p>
-						<ul className="mt-3 list-disc space-y-1 pl-5 text-lg text-white/90">
-							{face.details.map((d) => (
-								<li key={d}>{d}</li>
-							))}
-						</ul>
-					</>
-				) : (
-					<p className="mt-1 text-lg text-white/70">
-						Nothing highlighted yet: the whole page is showing. Press → or wait for the rotation.
-					</p>
-				)}
+				<p className="text-sm text-sky">
+					{tech ? "Tech view" : "Business view"} · {face ? face.title : "Intro"}
+				</p>
+				<div className="mt-3 space-y-3 text-2xl leading-snug text-white">
+					{face ? (
+						<p>{face.say}</p>
+					) : (
+						(tech ? intro.tech : intro.business).map((line) => <p key={line}>{line}</p>)
+					)}
+				</div>
 			</div>
+			{!tech && (
+				<div className="rounded-xl border border-white/15 p-4">
+					<p className="text-xs uppercase tracking-widest text-white/40">Before you press T</p>
+					<p className="mt-1 text-lg text-white/80">{intro.toTech}</p>
+				</div>
+			)}
 			<div className="flex flex-wrap gap-2">
 				<button type="button" className={btn} onClick={() => update(overviewTogglePlay)}>
 					{playing ? <Pause className="size-4" /> : <Play className="size-4" />}

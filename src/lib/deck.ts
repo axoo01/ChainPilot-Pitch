@@ -114,15 +114,11 @@ export const overviewTogglePlay = (s: DeckState): DeckState => ({
 	overview: { ...s.overview, playing: !s.overview.playing },
 });
 
-export const overviewSetTech = (s: DeckState, tech: boolean): DeckState => ({
-	...s,
-	overview: { ...s.overview, tech },
-});
+/** Switching side starts that side from its intro: nothing highlighted yet. */
+export const overviewSetTech = (s: DeckState, tech: boolean): DeckState =>
+	tech === s.overview.tech ? s : { ...s, overview: { ...s.overview, tech, tile: -1 } };
 
-export const overviewToggleTech = (s: DeckState): DeckState => ({
-	...s,
-	overview: { ...s.overview, tech: !s.overview.tech },
-});
+export const overviewToggleTech = (s: DeckState): DeckState => overviewSetTech(s, !s.overview.tech);
 
 export const firstDemoSlide = slides.findIndex((d) => d.demo);
 
