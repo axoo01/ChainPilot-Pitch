@@ -210,12 +210,11 @@ export function Attract() {
 			<div className="absolute bottom-[64px] left-[160px] right-[160px] flex items-center justify-between">
 				<ChainPilotLogo size={48} />
 				<div className="h-[4px] w-[420px] overflow-hidden rounded-full bg-white/10">
-					<motion.div
+					{/* CSS, not Motion: the parent AnimatePresence's initial={false} skips Motion's first animation */}
+					<div
 						key={i}
 						className="h-full origin-left bg-white/50"
-						initial={{ scaleX: 0 }}
-						animate={{ scaleX: 1 }}
-						transition={{ duration: scene.ms / 1000, ease: "linear" }}
+						style={{ animation: `cp-grow-x ${scene.ms}ms linear forwards` }}
 					/>
 				</div>
 			</div>
